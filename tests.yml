@@ -1,0 +1,27 @@
+modulename: 'tests'
+debug: True
+tests:
+ # top_marks:
+ #   answer_type: list
+ #   marks: 1
+ # gc_content:
+ #   answer_type: list
+ #   marks: 3
+  complement:
+    answer_type: str
+    marks: 1
+  add_decoration:
+    answer_type: str
+    marks: 1
+  product_of_cubes:
+    answer_type: int
+    marks: 1
+  motif_count:
+    answer_type: int
+    marks: 1
+  piece_lengths:
+    answer_type: list
+    marks: 3
+  remove_adapter:
+    answer_type: list
+    marks: 3
