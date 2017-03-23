@@ -7,7 +7,7 @@ import yaml
 import importlib
 import inspect
 import click
-from flask import Flask, Response, jsonify, request, abort
+from flask import Flask, Response, jsonify, request, abort, render_template
 from flask_pymongo import PyMongo
 
 sys.path.append('/data')
@@ -18,7 +18,7 @@ mongo = PyMongo(app)
 
 tests = None
 yamlfile = None
-
+can_submit = False
 
 def find_function(module, name):
     for (function_name, function_object) in inspect.getmembers(module, inspect.isfunction):
@@ -41,7 +41,13 @@ def init_tests(testsfile):
         if func == None:
             exit('Could not find implementation for {}'.format(testname))
         tests[testname]['function'] = func
+    can_submit = data.get('assignments_open', False)
     app.run(host='0.0.0.0', debug=data.get('debug', False))
+
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 
 @app.route('/notebook')
@@ -100,14 +106,36 @@ def empty_answer(testtype):
 def accept_notebook():
     content = request.get_json()
     if 'notebook' in content and 'key' in content:
-        notebook = content['notebook']
-        key = content['key']
-        assignment = dict(notebook=notebook, key=key)
-        mongo.db.assignments.insert_one(assignment)
-        print(mongo.db.name)
-        return jsonify(dict(success=True))
+        if can_submit:
+            notebook = content['notebook']
+            key = content['key']
+            assignment = dict(notebook=notebook, key=key)
+            mongo.db.assignments.insert_one(assignment)
+            print(mongo.db.name)
+            return jsonify(dict(success=True))
+        else:
+            return jsonify(dict(success=False))
     else:
         abort(404)
+
+
+@app.route('/students', methods=['GET'])
+def students():
+    students = mongo.db.students.find()
+    emails = [ dict(email=student['email'], key=str(student['key'])) for student in students ]
+    print(emails)
+    return jsonify(emails)
+
+
+@app.route('/student_notebook/<key>')
+def getnotebook(key):
+    notebook = mongo.db.assignments.find_one(dict(key=key))
+    if notebook is not None:
+        return Response(response=notebook.get('notebook', ''),
+        status=200,
+        mimetype='application/x-ipynb+json')
+    else:
+        abort(404);
 
 
 @app.route('/getmark/<key>', methods=['GET'])
@@ -159,7 +187,8 @@ def testrunner(testname):
     else:
         score = current_score
         score['correct'] = correct
-    mongo.db.answers.save(score)
+    if can_submit:
+        mongo.db.answers.save(score)
     response = dict(correct_answer=correct_answer, correct=correct, reason='')
     return jsonify(response)
 

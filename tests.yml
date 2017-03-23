@@ -1,5 +1,6 @@
 modulename: 'tests'
 debug: True
+assignments_open: False
 tests:
  # top_marks:
  #   answer_type: list
